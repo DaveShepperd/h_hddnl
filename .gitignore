@@ -1,0 +1,8 @@
+# Build outputs (see "make clean")
+*.o
+*.lis
+hddnl
+
+# SlickEdit per-user state
+*.vtg
+*.vpwhistu

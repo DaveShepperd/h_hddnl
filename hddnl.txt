@@ -1,0 +1,532 @@
+This is a simple document describing the operation of hddnl, a disk authoring
+tool. The command line options are listed here for your convenience, but they
+might not reflect the most accurate details. Type hddnl -\? to get the most up
+to date details on command line options.
+
+Usage: hddnl [-b n] [-C n] -c file [-d n] [-D n] [-h host] [-m n] [-M n] [-p n]
+             [-r n] [-R n] [-t n] [-T n] [-Tm n] [-z n] [-Z n] [-fFiIlnNuVvx?]
+             [-la] [-ld] [-lr] [pattern...]
+
+where:
+	[]'s represent optional parameters. Whitespace between any option
+	character and its argument is optional (except for -la, -ld, -lr and
+	-Tm). Whitespace is shown in this list for clarity. (i.e. '-cfile' is
+	equivalent to '-c file'). Options may appear on the command in any order
+	but all options must appear before any patterns.
+
+ 'pattern' is a simple string. A match occurs if the pattern appears _anywhere_
+	in the game's path/filename. At this time, the pattern is
+	_not_ interpreted as a regular expression. Only files matching the pattern
+	are processed. If no pattern is provided, all files listed in the command
+	file are processed.
+
+ -c cmd_file = name of command file. Expects a string argument. The command file
+	contains details about how the game's volume should be constructed including
+	the list of files with which to copy. The format and syntax of this file is
+	described at the end of this document. At this time, this parameter is
+	required.
+
+ -C number = Sets the default number of copies of files to create on the game disk.
+	The value set here is permanently overridden at the first occurance of a
+	DEFAULT command in the command file with a COPIES= parameter. The value
+	is always overridden by the value set on the COPIES= parameter on a FILE
+	command. The default number of files created on the game disk is 1.
+
+ -d define_file = name of file where #define FID's are placed. Files are stored in
+	this filesystem by a number called a File ID (FID). Each file (including
+	directories) is assigned its own FID. If you choose not to use named files
+	(i.e., not to use the directory structure), then you may have hddnl emit
+	the FID's of the created files to this output file in a C syntax #define.
+	The name of the #define is assigned as a parameter on the FILE line in the
+	command file. Your game can then refer to the files via these #defines
+	instead of as ASCII strings.
+	NOTE: This option is not implemented. It is accepted and ignored; no
+	define file is written.
+
+ -f = force update of all files matching pattern. Normally, hddnl only updates
+	a file if the date or size of the file recorded on the game's disk does
+	not match that of the file on the Unix system. This option can override
+	that behavior and force an update of the specified files.
+
+ -F = Initialize the volume. This also sets -f. This option is used to create a
+	new filesystem on a disk. It completely erases whatever was there before.
+
+ -h host = name of ASCLEAP host to which to connect. Expects a string argument.
+	(Defaults to contents of environment variable ASCHOST).
+
+ -i = delete files on the game disk that have no entry in the command file.
+	Use this option to make the filesystem on the game disk match the
+	contents of the command file. At the present time, it does not
+	delete empty directories or directories that become empty as a
+	result of having all the files in them deleted.
+
+ -I = copy files if date on source disk is different than one on destination.
+	The default is to only copy source files whose date is younger than
+	that on the destination disk. One would use this option if the dates
+	on the Unix files that are to be transferred are not set as expected
+	due to the sharing s/w on some other host, typically a Mac or PeeCee.
+
+ -l = lists the name of each file on the game disk, one name per line.
+	This option also suppresses any status messages that hddnl might
+	otherwise emit. The list is written to stdout which may be redirected
+	or piped to some other application. The files are listed in the
+	order in which they appear in the game filesystem's hash table.
+	Directories are listed with a trailing '/' character on the pathname.
+	Except for the root directory, directories named "." and ".." are
+	not listed. (No command file parameter is required when using this
+	option).
+
+	To get a list sorted by filename, pipe the output into sort. I.e:
+		hddnl -hhost -l | sort 
+
+ -la = lists everything about each file on the game disk.
+
+	**** NOTE: The the option is '-la' with no spaces. ****
+
+	This option also suppresses any status messages that hddnl might
+	otherwise emit. The list is written to stdout which may be redirected
+	or piped to some other application. The files are listed in the
+	order in which they appear in the game filesystem's hash table.
+	The fields on each line are listed in the following order:
+	File ID, # of retrevial pointers, # of copies, file allocation in
+	sectors, file size in bytes, default allocation in sectors,
+	creation date, modification date and pathname.
+	Directories are listed with a trailing '/' character on the pathname.
+	Except for the root directory, directories named "." and ".." are
+	not listed. (No command file parameter is required when using this
+	option).
+
+	To get a list sorted by filename, pipe the output into sort. I.e:
+		hddnl -hhost -la | sort +8.0b 
+	To get a list sorted by date, pipe the output into sort. I.e:
+		hddnl -hhost -la | sort +7.0b 
+
+ -ld = lists, in order, the # of copies, size, modification date and name
+	of each file on the game disk.
+
+	**** NOTE: The the option is '-ld' with no spaces. ****
+
+	This option also suppresses any status messages that hddnl might
+	otherwise emit. The list is written to stdout which may be redirected
+	or piped to some other application. The files are listed in the
+	order in which they appear in the game filesystem's hash table.
+	The fields on each line are listed in the following order:
+	# of copies, file size in bytes, modification date and pathname.
+	Directories are listed with a trailing '/' character on the pathname.
+	Except for the root directory, directories named "." and ".." are
+	not listed. (No command file parameter is required when using this
+	option).
+
+	To get a list sorted by filename, pipe the output into sort. I.e:
+		hddnl -hhost -ld | sort +3.0b 
+	To get a list sorted by date, pipe the output into sort. I.e:
+		hddnl -hhost -ld | sort +2.0b 
+
+ -lr = lists, in order, the File ID, # of retrieval pointers, # of file
+	copies, the first retrieval pointer of each copy (listed as
+	starting_sector-ending_sector separating each with a '/') and
+	the full pathname of each file on the game disk. If there is
+	more than one retrieval pointer, the retrieval pointers will
+	be suffixed with a '+'.
+
+	**** NOTE: The the option is '-lr' with no spaces. ****
+
+	This option also suppresses any status messages that hddnl might
+	otherwise emit. The list is written to stdout which may be redirected
+	or piped to some other application. The files are listed in the
+	order in which they appear in the game filesystem's hash table.
+	The fields on each line are listed in the following order:
+	FID, # of retrieval pointers, # of file copies, Retrieval pointers
+	and pathname. Directories are listed with a trailing '/' character
+	on the pathname. Except for the root directory, directories named
+	"." and ".." are not listed. (No command file parameter is
+	required when using this option).
+
+	To get a list sorted by filename, pipe the output into sort. I.e:
+		hddnl -hhost -lr | sort +4.0b 
+
+	To get a list sorted by retrieval pointer:
+		hddnl -hhost -lr | sort +3.0b 
+
+ -lp = lists the partition table on the disk. It doesn't verify the contents
+        it only prints it as it appears on disk.
+
+	**** NOTE: The the option is '-lp' with no spaces. ****
+
+	This option also suppresses any status messages that hddnl might
+	otherwise emit. The list is written to stdout which may be redirected
+	or piped to some other application.
+
+ -Tm timeout = sets timeout in seconds for the mount command. The default
+	is 15. Some of the newer drives are quite slow and if the game has
+	thousands of files, it can take more than 15 seconds for the game
+	CPU to complete the mount. This command allows one to extend the
+	'wait for mount to complete' time.
+
+	**** NOTE: The the option is '-Tm'; uppercase 'T', lowecase 'm'
+	with no spaces. A space between the 'm' and the timeout value
+	is optional. ****
+
+ -u = upload files (as specified in the command file) from the target's disk.
+	Normally, hddnl copies files from the Unix system to the game disk. This
+	option causes it to copy the files from the game's disk to the Unix
+	system. NOTE: At this time, this option also implies a -f.
+
+ -v = update file if necessary, otherwise just verify checksum. Updates checksum
+	file if necessary.
+
+ -V = do not update any file. Verify checksums on all files.
+
+ -z number = Files whose size is greater than or equal to 'number' are
+	compressed before being squirted over the network then decompressed before
+	being written to disk. A 'k' (or 'K') or 'm' (or 'M') can be appended
+	to the number to indicate kilobytes or megabytes respectively. A value
+	of 0 (the default) disables data compression.
+
+ -Z number = Sets the compression level. Valid values are 1 (the default) to 7.
+	Lower numbers have reduced compression but take the least CPU (are faster).
+	Higher numbers have greater compression but take more CPU (are slower).
+	A value of 1 is probably the best to use with ethernet.
+
+ -? = a wordy help screen similar to this one.
+
+The following command line options are for debugging and special uses. Care
+should be taken when using them:
+
+ -b board = ICELESS board number to use (0-3, default=1).
+
+ -D level = sets debug level. Logical 'or' of: (Default=0).
+	0x01 - report details on command file processing.
+	0x02 - show network packet traffic.
+	0x04 - show incoming network packets.
+	0x08 - show outgoing network packets.
+	0x10 - show outgoing network commands.
+
+ -m num = sets maximum number of bytes in a single ICELESS packet. This option
+	can be adjusted if you find hddnl emitting "EOF from remote end"
+	messages. You might try -m500 if you are getting EOF errors. The
+	default is the maximum of 1390.
+
+ -M num = sets maximum number of packets sent before expecting a ACK/NAK
+	(Default is 10; maximum is 20). Setting this to a higher number
+	will either improve throughput or make it more prone to errors.
+
+ -n = Do not reset target before issuing a volume initialize. The game's
+	filesystem does not have the equivalent of a umount, so the way
+	umount is performed is by pressing the reset. The -F option
+	will cause the game to be reset. If there are instances where one
+	does not want this behavior, the -n will suppress the reset.
+
+ -N = Do not mount the Atari filesystem.
+
+ -p port = TCP port number to use (default=230).
+
+ -r port = PATNET port to use (0-1, Default=1).
+
+ -R rate = Probe rate in milliseconds (Default=200).
+
+ -t thread = sets thread number to use (Default=2).
+
+ -T timeout = sets packet timeout in milliseconds (Default=10000).
+
+ -x = Just say what would happen without actually doing it.
+
+NOTE: On DOS systems, the following command line options are not available:
+-b, -h, -m, -M, -p, -n, -r, -R, -t, -T, -Tm, -x, -z, -Z.
+
+Command file format and syntax:
+
+The command file contains a description of what is desired on the game's
+volume. 
+
+Whitespace appearing in the file is significant in separating parameters but
+is otherwise ignored. Comments are delimited with the pound character (#). Any
+characters appearing between a (#) character and the end of line are ignored.
+
+Each line is identified by a token, one of VOLUME, DIRECTORY, FILE, DEFAULT,
+BOOT, BOOTx, PARTITION or CHECKSUM which must appear as the first
+non-whitespace string on the line. Case of this token is not significant and
+the tokens can be abbreviated to one or more characters. All lines in the file
+are processed before anything is sent or received from the game. At this time,
+errors encountered during command file processing cause hddnl to abort before
+sending or receiving any files.
+
+Files will be written to the game's disk in the order in which they appear in
+the command file with the exception of the checksum file which will always be
+written (updated) last.
+
+Each of the commands accepts a variable number of parameters, most of which
+are optional. The parameter is identified by a string (token) which is case
+insensitive, followed by an equal sign (=) then the parameter's argument.
+Whitespace may appear on either side of the the equal sign. The parameter
+token may be abbreviated to one or more characters. In most instances, the
+argument to the parameter _is_ case sensitive.
+
+If the argument to a parameter is expected to be a file or pathname, then the
+following is true: The path may include the construct $variable in which case
+the string will be replaced with the value of the named environment variable
+(if possible). Except on DOS, Elements in the path may also include the
+construct ~user to identify the home directory of a user. If one is found, the
+string will be replaced with its equivalent. In either case, if no translation
+is found, the string is used as is. No error will be emitted.
+
+If the argument to a parameter is expected to be a number (unless otherwise
+indicated), you may enter it in any form suitable as input to strtol(). That
+is if the number has a leading 0, it is assumed octal; if it has a leading 0x
+it is assumed hexidecimal; if it has a 0b it is assumed binary and a leading
+0d forces decimal; If there are no explicit prefixes, the number is assumed to
+be decimal. You may also suffix the single character 'K', 'M' or 'G' (or 'k',
+'m' or 'g') to indicate kilo, mega or giga resectively.
+
+The 'host' system referenced in the rest of this document refers to the system
+upon which you are running the hddnl program (either your Unix system or your
+DOS system). Note on DOS hosts, the filename delimiter is backslash ('\'). On
+Unix systems the filename delimiter is forward slash ('/'). You may use either
+type of slash in game names (in any given filename, all slash types must be
+the same), but the host filenames must conform to that required by the host.
+For brevity, the foward slash is used as a filename delimiter in the rest
+of this document. Note also that the device name on the game disk is specified
+as '/dn' (or '\dn') where 'n' is the unit number, 0-3.
+
+Commands:
+
+VOLUME:
+
+The VOLUME command is optional. Use it to describe the parameters to use
+to initialise and/or mount the game's volume. The defaults for each of the
+parameters are probably adequate for most games. The 'name' arguments for
+the PHYS and VIRT parameters are simple strings. All the other arguments
+(n's) are decimal numbers indicating the number of sectors to allocate
+for each file. MAX_LBA allows one to create a filesystem of a fixed size
+so the disk may be safely cloned (copied) to drives of different (but
+bigger) sizes. The defaults are:
+
+	PHYSICAL=/rd0	# name of physical device
+	VIRTUAL=/d0	# name of virtual device
+	CLUSTER_SIZE=1	# number of sectors per cluster (must be 1)
+	INDEX_SIZE=50	# number of preallocated sectors for index file
+	FREE_SIZE=50	# number of preallocated sectors for freelist file
+	ROOT_SIZE=50	# number of preallocated sectors for root directory
+	EXTEND_SIZE=10	# default number of sectors to extend all files
+	MAX_LBA=n	# defaults to number of sectors on physical drive
+
+Syntax:
+	VOLUME	PHYSICAL=name VIRTUAL=name CLUSTER_SIZE=n INDEX_SIZE=n
+		FREE_SIZE=n ROOT_SIZE=n EXTEND_SIZE=n MAX_LBA=n
+
+Examples:
+	VOLUME PHY=/rd0 VIRT=/d0 INDEX=100 #set phys,virt names and index size
+	VOL IND=100	# set index size, accept all other defaults.
+
+
+DEFAULT:
+
+The DEFAULT command is optional. Use it to set parameters to apply to fields
+in subsequent FILE and DIRECTORY commands. Parameters not provided on a
+DEFAULT command are left unchanged from those set in previous DEFAULT commands.
+
+Syntax:
+	DEFAULT UNIX_DIRECTORY=pathname GAME_DIRECTORY=pathname COPIES=n
+
+Examples:
+	See the examples in the description of the FILE command.
+
+
+DIRECTORY:
+
+The DIRECTORY command is optional. Use it to create a specific directory on
+the game disk. You would use this command if you expect to need a very large
+directory (many 1000's of files located in a single specific directory) and/or
+want to pre-allocate enough space to describe the whole directory in fewer
+retrevial pointers than would otherwise be necessary. Normally you do not need
+to use this command since the default is for the hddnl to automatically create
+all intervening directories on any given file (with each directory getting a
+default file allocation of 50). The allocation amount is in sectors. The
+current implimentation of the filesystem has a limit of 20 retrieval pointers
+per file. At 50 sectors per retrieval pointer, it is unlikely that the
+directory file can be extended beyond 512000 bytes. Each file in the directory
+takes 6 bytes plus the length of the name. If each name in the directory
+followed the DOS naming convention of 8.3 (12 bytes), there would, by default,
+be room in a single directory for only 28444 files. The filesystem limits
+file and directory names to 254 bytes in length.
+
+Syntax:
+	DIRECTORY NAME=pathname ALLOCATION=n 
+Examples:
+	DIR NAME=/d0/foo/bar ALLOC=1800	#Room for 50,000 DOS filenames
+
+FILE:
+
+The FILE command is _not_ optional. Use this command to cause a file to be
+copied either from the Unix (DOS) system to the game or from the game to the Unix
+system (as specified by the -u command line option).
+
+Syntax:
+	FILE UNIX_NAME=pathname GAME_NAME=pathname ALLOCATION=n EOF=n
+		PLACEMENT=n COPIES=n FID_NAME=name
+
+where:
+	UNIX_NAME (or DOS_NAME) - pathname to file on Unix (DOS) system
+	GAME_NAME - pathname to file on Game system
+	ALLOCATION - number of _bytes_ to pre-allocate for file
+	EOF - where to leave the EOF mark, in bytes
+	PLACEMENT - which area of disk to place disk (0-2)
+	COPIES - number of copies of file to store (1-3)
+	FID_NAME - name to use on the #define for FID assignment
+	NO_CHECKSUM - set to any non-zero value to suppress the
+			creation of an entry in the checksum file.
+			(Use this if the game updates the contents
+			of a file without updating the contents of
+			the checksum file).
+
+Either a UNIX_NAME (or DOS_NAME) or a GAME_NAME parameter is required, but
+both may be provided. All other parameters are optional. The default
+ALLOCATION value is the size of the source file on Unix. The default EOF is
+one past the last byte in the destination file. The default PLACEMENT is 0
+which means place the first copy at region 0, second at 1, etc. The default
+COPIES value is that provided in a previous DEFAULT command or 1 if none
+provided. There is no default FID_NAME. All intervening directories will
+automatically be made on the game system disk. The game's filesystem limits
+filenames to 254 characters in length and filenames _are_ case sensitive.
+
+If the UNIX_NAME (or DOS_NAME) parameter is not supplied, then the UNIX_NAME
+defaults to the argument provided on the GAME_NAME parameter. If the GAME_NAME
+parameter is not supplied, then the GAME_NAME defaults to the argument
+provided on the UNIX_NAME parameter. Once those defaults have been applied,
+then the following is true: If the UNIX_NAME parameter's argument starts with
+other than a '/', then the contents of the UNIX_DIRECTORY argument specified
+on a previous DEFAULT command will be prefixed to the argument (with an
+intervening '/' if required). If the GAME_NAME parameter's argument starts
+with other than a '/', then the contents of the GAME_DIRECTORY argument
+specified on a previous DEFAULT command will be prefixed to the argument (with
+an intervening '/' if required). 
+
+Examples:
+	DEFAULT UNIX=~shepperd/disk_files GAME=/d0 COPIES=2
+	FILE UNIX=foo/bar/data.txt
+	FILE GAME=fubar/fred.dat
+	FILE UNIX=$GUTS/3dfx/dms/phxad/os/vmunix GAME=CODE/vmunix
+	DEFAULT UNIX=$GUTS/3dfx/mace/seattle/test
+	FILE UNIX=texture.rom GAME=/d0/fred/test/texture.rom
+
+The first DEFAULT command above establishes the default Unix path of user
+"shepperd"'s home directory, subdirectory "disk_files" (i.e.
+/home/hobbes/usr/people/shepperd/disk_files), sets the default path on the
+game disk to /d0 (the root directory of the filesystem on drive 0) and sets
+the number of copies of subsequent files to 2. The following two FILE commands
+would cause the following file transfers (Unix -> Game):
+
+~shepperd/disk_files/foo/bar/data.txt -> /d0/foo/bar/data.txt
+~shepperd/disk_files/fubar/fred.dat -> /d0/fubar/fred.dat
+
+If the contents of the environment variable GUTS is set to /home/sequoia/usr2/GUTS,
+the third FILE command listed above would cause:
+
+/home/sequoia/usr2/GUTS/3dfx/dms/phxad/os/vmunix -> /d0/CODE/vmunix
+
+The second DEFAULT command changes the defaults for subsequent FILE,
+DIRECTORY and CHECKSUM commands. Since the GAME_NAME parameter on the fourth
+FILE command has a leading '/', no defaults are applied to the name and
+it is therefore, used exactly as specified:
+
+/home/sequoia/usr2/GUTS/3dfx/mace/seattle/test/texture.rom ->
+			      	/d0/fred/test/texture.rom
+
+BOOT:
+
+This option exists for compatibility with earlier versions of hddnl and is
+equivalent to BOOT0. See the description of BOOT0 below for details.
+
+BOOT0:
+BOOT1:
+BOOT2:
+BOOT3:
+
+The BOOTn command is identical to a FILE command except it also identifies the
+file to be copied as also being one of 4 bootable files. hddnl will put some
+extra information into the home block of the volume to help the boot code find
+this file. It will always write 3 copies no matter what is specified in the
+argument list. BOOTn commands can appear in any order. If there are more than
+one of a specific type (two BOOT0's for example), the last one listed in the
+command file wins.
+
+CHECKSUM:
+
+The CHECKSUM command is optional. Use this command to tell hddnl to compute
+checksums on the files copied and to create/update the checksum file on
+the game disk and where on the game disk to put/find the checksum file.
+
+Syntax:
+	CHECKSUM GAME_NAME=pathname COPIES=n
+
+where GAME_NAME identifies where on the game disk to place the checksum
+file and COPIES is how many copies to make. As with FILE and DIRECTORY,
+defaults specified on a previous DEFAULT command are applied to the arguments
+on this command. At this time, the boot EPROM is expecting the checksum
+file to be found at /d0/diags/checksums, so this is where you should
+put it unless arrangements are made otherwise.
+
+Example:
+	CHECKSUM GAME=/d0/diags/checksums COPIES=3
+
+PARTITION:
+
+The PARTITION command is optional. Use this command to tell hddnl to install
+or modify the partition table on the disk. There can be a max of 4 partitions
+on the disk. hddnl only handles the primary partitions and presently there is
+no method to have hddnl automatically install extended partitions. The
+command, if present, will always be checked for syntax errors, but the
+contents are only used during disk INIT sequence (-F on the command line) at
+which time the supplied paramters will be checked against the limits enforced
+by the drive as well as checking for overlaps with other partitions.
+
+Syntax:
+	PARTITION INDEX=n STATUS=n TYPE=n START=n END=n SIZE=n COUNT=n
+
+where:
+	INDEX - number from 0 to 3 selecting the partition table entry
+	STATUS - the status byte of the partition table (normally 0)
+	TYPE - sets the partition type.
+	START - sets the starting sector of the partition
+	END - sets the ending sector of the partition
+	SIZE - sets the size of the partition in bytes
+	COUNT - sets the size of the partition in sectors
+
+One may use either END, SIZE or COUNT but not more than one of them. PARTITION
+commands may appear in any order anywhere in the command file. No partition
+table will be written to disk if any of the specified partitions overlap each
+other or with existing partitions. To create a partition suitable for use by
+the Atari filesystem, set the TYPE to 0x8F. Linux normal filesystem is TYPE
+0x83 and a Linux swap partition is TYPE 0x82. To delete a partition, specify
+its TYPE as 0. One may not start a partition on sector 0. hddnl will quietly
+advance the starting sector and reduce the count by one in that case. hddnl
+will automatically calculate values for c/h/s and store them in the partition
+table along with the starting LBA and number of sectors. Note, however, that
+the c/h/s values are ignored by all modern O/S's and only fdisk programs are
+likely to pay any attention to the c/h/s numbers and may complain about them
+if the partitions don't start and end on cylinder boundaries. It would
+be a bad idea to use fdisk (on either Unix, DOS or Windows) to modify a
+partition table created with hddnl unless care is taken to ensure the c/h/s
+values are aligned on cylinder boundaries. Please note that unless one plans
+on using the drive specifically for DOS or Windows, it is a waste of time
+to try to match the LBA with c/h/s since cloning the disk to another of a
+different size/model/brand will very likely "undo" the careful planning. The
+Atari filesystem and Linux/Unix O/S's pay no attention to c/h/s.
+
+Examples:
+    PARTITION INDEX=0 STATUS=0 TYPE=0x83 START=0 END=0xFBFFF #250Mbytes
+    PARTITION INDEX=1 STATUS=0 TYPE=0x83 START=0xFC000 COUNT=0x189C0 #~50Mbytes
+    PARTITION INDEX=2 STATUS=0 TYPE=0x82 START=0x1149C0 SIZE=64M #64Mbytes
+    PARTITION INDEX=3 STATUS=0x80 TYPE=0x8F START=0x133200 SIZE=3G #3GB
+    PARTITION INDEX=2 TYPE=0	#Delete partition 2
+
+creates partition 0 as a 250Mbyte Linux type filesystem. Note that even though
+START is set to 0, the partition will actually start at track 1 or, more than
+likely, sector 63 (which may depend on the drive). It also creates a 50Mbyte
+partition 1 that starts immediately after partition 0. It creates a 64Mbyte
+Linux swap partition at slot 2 and a 3Gigabyte bootable Atari filesystem
+partition at slot 3. It deletes partition 2.
+
+Updated 11/20/99 - dms
+web -> /home/iweb/opt/apache/share/htdocs/software/doc/hddnl/hddnl.txt
+master -> /usr/local/GUTS/tools/h_hddnl/RCS
